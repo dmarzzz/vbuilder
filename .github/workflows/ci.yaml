@@ -39,6 +39,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+      - name: Install Foundry toolchain
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev protobuf-compiler
       - name: Run all unit tests
