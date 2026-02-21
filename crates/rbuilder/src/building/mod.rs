@@ -384,6 +384,9 @@ pub enum Sorting {
     LengthThreeMaxProfit,
     /// Orders are ordered by length 3 (orders length >= 3 first) and then by their mev gas price.
     LengthThreeMevGasPrice,
+    /// Orders are sorted numerically by their identifier bytes (tx hash for mempool txs,
+    /// UUID bytes for bundles). Produces a fully deterministic, profit-agnostic block ordering.
+    TxHash,
 }
 
 const MEV_GAS_PRICE_NAME: &str = "mev_gas_price";
@@ -391,6 +394,7 @@ const MAX_PROFIT_NAME: &str = "max_profit";
 const TYPE_MAX_PROFIT_NAME: &str = "type_max_profit";
 const LENGTH_THREE_MAX_PROFIT_NAME: &str = "length_three_max_profit";
 const LENGTH_THREE_MEV_GAS_PRICE_NAME: &str = "length_three_mev_gas_price";
+const TX_HASH_NAME: &str = "tx_hash";
 
 impl FromStr for Sorting {
     type Err = eyre::Error;
@@ -402,6 +406,7 @@ impl FromStr for Sorting {
             TYPE_MAX_PROFIT_NAME => Ok(Self::TypeMaxProfit),
             LENGTH_THREE_MAX_PROFIT_NAME => Ok(Self::LengthThreeMaxProfit),
             LENGTH_THREE_MEV_GAS_PRICE_NAME => Ok(Self::LengthThreeMevGasPrice),
+            TX_HASH_NAME => Ok(Self::TxHash),
             _ => eyre::bail!("Invalid algorithm"),
         }
     }
@@ -414,6 +419,7 @@ impl std::fmt::Display for Sorting {
             Sorting::TypeMaxProfit => write!(f, "{TYPE_MAX_PROFIT_NAME}"),
             Sorting::LengthThreeMaxProfit => write!(f, "{LENGTH_THREE_MAX_PROFIT_NAME}"),
             Sorting::LengthThreeMevGasPrice => write!(f, "{LENGTH_THREE_MEV_GAS_PRICE_NAME}"),
+            Sorting::TxHash => write!(f, "{TX_HASH_NAME}"),
         }
     }
 }

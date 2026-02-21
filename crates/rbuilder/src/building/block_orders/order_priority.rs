@@ -241,11 +241,28 @@ impl OrderIDCmp {
     }
 }
 
+/// Sorts orders numerically by their identifier bytes.
+/// For mempool txs this is the transaction hash; for bundles it is the bundle UUID
+/// padded to 32 bytes. Produces a fully deterministic block ordering.
+struct OrderTxHashCmp {}
+impl OrderTxHashCmp {
+    #[inline]
+    fn eq(a: &SimulatedOrder, b: &SimulatedOrder) -> bool {
+        a.id().fixed_bytes() == b.id().fixed_bytes()
+    }
+
+    #[inline]
+    fn cmp(a: &SimulatedOrder, b: &SimulatedOrder) -> Ordering {
+        a.id().fixed_bytes().cmp(&b.id().fixed_bytes())
+    }
+}
+
 create_order_priority!(OrderMevGasPricePriority((OrderMevGasPricePriorityCmp,uses_getter))<simulation_too_low_gas_price>);
 create_order_priority!(OrderMaxProfitPriority((OrderMaxProfitPriorityCmp,uses_getter))<simulation_too_low_profit>);
 create_order_priority!(OrderTypePriority((OrderTypeCmp,plain),(OrderMaxProfitPriorityCmp,uses_getter))<simulation_too_low_profit>);
 create_order_priority!(OrderLengthThreeMaxProfitPriority((OrderLengthThreeCmp,plain),(OrderMaxProfitPriorityCmp,uses_getter))<simulation_too_low_profit>);
 create_order_priority!(OrderLengthThreeMevGasPricePriority((OrderLengthThreeCmp,plain),(OrderMevGasPricePriorityCmp,uses_getter))<simulation_too_low_profit>);
+create_order_priority!(OrderTxHashPriority((OrderTxHashCmp,plain))<simulation_too_low_profit>);
 
 #[cfg(test)]
 mod test {
@@ -511,6 +528,23 @@ mod test {
         assert_is_less::<OrderLengthThreeMevGasPricePriority<FullProfitInfoGetter>>(
             &sim_size_1_low,
             &sim_size_1_high,
+        );
+    }
+
+    /// OrderTxHashPriority: lower tx hash ID bytes sort before higher ones.
+    #[test]
+    fn tx_hash_ordering() {
+        let mut ctx = TestContext::default();
+        // TestDataGenerator uses monotonically increasing IDs so the first order
+        // created will always have a lower identifier than the second.
+        let sim_low_hash =
+            ctx.create_sim_order(MID_PROFIT, MID_PROFIT, DONT_CARE_GAS, OrderType::MempoolTx);
+        let sim_high_hash =
+            ctx.create_sim_order(MID_PROFIT, MID_PROFIT, DONT_CARE_GAS, OrderType::MempoolTx);
+
+        assert_is_less::<super::OrderTxHashPriority<FullProfitInfoGetter>>(
+            &sim_low_hash,
+            &sim_high_hash,
         );
     }
 }
