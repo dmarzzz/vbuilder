@@ -17,7 +17,6 @@ cl_node_url = ["env:CL_NODE_URL"]
 jsonrpc_server_port = 8645
 jsonrpc_server_ip = "0.0.0.0"
 el_node_ipc_path = "/tmp/reth.ipc"
-extra_data = "⚡🤖"
 
 blocklist_file_path = "./blocklist.json"
 
