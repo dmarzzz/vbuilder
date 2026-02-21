@@ -502,7 +502,7 @@ impl Default for BaseConfig {
             blocklist: None,
             blocklist_url_max_age_hours: None,
             blocklist_url_max_age_secs: None,
-            extra_data: b"extra_data_change_me".to_vec(),
+            extra_data: b"vibe builder 420 69".to_vec(),
             root_hash_use_sparse_trie: false,
             root_hash_sparse_trie_version: "v1".to_string(),
             root_hash_compare_sparse_trie: false,
