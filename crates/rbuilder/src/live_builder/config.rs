@@ -26,7 +26,7 @@ use crate::{
         order_priority::{
             FullProfitInfoGetter, NonMempoolProfitInfoGetter, OrderLengthThreeMaxProfitPriority,
             OrderLengthThreeMevGasPricePriority, OrderMaxProfitPriority, OrderMevGasPricePriority,
-            OrderTypePriority, ProfitInfoGetter,
+            OrderTxHashPriority, OrderTypePriority, ProfitInfoGetter,
         },
         PartialBlockExecutionTracer, Sorting,
     },
@@ -655,6 +655,13 @@ where
                 PartialBlockExecutionTracerType,
             >(config, input, partial_block_execution_tracer)
         }
+        Sorting::TxHash => {
+            crate::building::builders::ordering_builder::backtest_simulate_block::<
+                P,
+                OrderTxHashPriority<ProfitInfoGetterType>,
+                PartialBlockExecutionTracerType,
+            >(config, input, partial_block_execution_tracer)
+        }
     }
 }
 
@@ -891,6 +898,11 @@ where
                 cfg, max_order_execution_duration_warning, name
             ))
         }
+        Sorting::TxHash => Arc::new(OrderingBuildingAlgorithm::<
+            OrderTxHashPriority<ProfitInfoGetterType>,
+        >::new(
+            cfg, max_order_execution_duration_warning, name
+        )),
     }
 }
 
