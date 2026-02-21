@@ -257,12 +257,29 @@ impl OrderTxHashCmp {
     }
 }
 
+/// Sorts orders by their identifier bytes in descending (reverse) order.
+/// Counterpart to [`OrderTxHashCmp`]: higher hash bytes sort first.
+struct OrderReverseTxHashCmp {}
+impl OrderReverseTxHashCmp {
+    #[inline]
+    fn eq(a: &SimulatedOrder, b: &SimulatedOrder) -> bool {
+        a.id().fixed_bytes() == b.id().fixed_bytes()
+    }
+
+    #[inline]
+    fn cmp(a: &SimulatedOrder, b: &SimulatedOrder) -> Ordering {
+        // Reverse: higher hash sorts "less" so it appears first in ascending priority queues.
+        b.id().fixed_bytes().cmp(&a.id().fixed_bytes())
+    }
+}
+
 create_order_priority!(OrderMevGasPricePriority((OrderMevGasPricePriorityCmp,uses_getter))<simulation_too_low_gas_price>);
 create_order_priority!(OrderMaxProfitPriority((OrderMaxProfitPriorityCmp,uses_getter))<simulation_too_low_profit>);
 create_order_priority!(OrderTypePriority((OrderTypeCmp,plain),(OrderMaxProfitPriorityCmp,uses_getter))<simulation_too_low_profit>);
 create_order_priority!(OrderLengthThreeMaxProfitPriority((OrderLengthThreeCmp,plain),(OrderMaxProfitPriorityCmp,uses_getter))<simulation_too_low_profit>);
 create_order_priority!(OrderLengthThreeMevGasPricePriority((OrderLengthThreeCmp,plain),(OrderMevGasPricePriorityCmp,uses_getter))<simulation_too_low_profit>);
 create_order_priority!(OrderTxHashPriority((OrderTxHashCmp,plain))<simulation_too_low_profit>);
+create_order_priority!(OrderReverseTxHashPriority((OrderReverseTxHashCmp,plain))<simulation_too_low_profit>);
 
 #[cfg(test)]
 mod test {
@@ -545,6 +562,22 @@ mod test {
         assert_is_less::<super::OrderTxHashPriority<FullProfitInfoGetter>>(
             &sim_low_hash,
             &sim_high_hash,
+        );
+    }
+
+    /// OrderReverseTxHashPriority: higher tx hash ID bytes sort before lower ones.
+    #[test]
+    fn reverse_tx_hash_ordering() {
+        let mut ctx = TestContext::default();
+        let sim_low_hash =
+            ctx.create_sim_order(MID_PROFIT, MID_PROFIT, DONT_CARE_GAS, OrderType::MempoolTx);
+        let sim_high_hash =
+            ctx.create_sim_order(MID_PROFIT, MID_PROFIT, DONT_CARE_GAS, OrderType::MempoolTx);
+
+        // Reverse: high hash sorts as "less" (i.e., comes first).
+        assert_is_less::<super::OrderReverseTxHashPriority<FullProfitInfoGetter>>(
+            &sim_high_hash,
+            &sim_low_hash,
         );
     }
 }
