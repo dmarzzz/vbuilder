@@ -32,7 +32,7 @@ use reth_node_api::NodeTypesWithDBAdapter;
 use reth_node_ethereum::EthereumNode;
 use reth_primitives::StaticFileSegment;
 use reth_provider::StaticFileProviderFactory;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use serde_with::serde_as;
 use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
@@ -53,6 +53,9 @@ use super::{
     block_output::unfinished_block_processing::UnfinishedBuiltBlocksInputFactory,
     payload_events::MevBoostSlotDataGenerator,
 };
+
+/// Hard-coded block extra data included in every block built by vbuilder.
+pub const EXTRA_DATA: &[u8] = b"vibe builder 420 69";
 
 /// Base config to be used by all builders.
 /// It allows us to create a base LiveBuilder with no algorithms or custom bidding.
@@ -110,9 +113,6 @@ pub struct BaseConfig {
 
     /// if true will not allow to start without a blocklist or with an empty blocklist.
     pub require_non_empty_blocklist: Option<bool>,
-
-    #[serde(deserialize_with = "deserialize_extra_data")]
-    pub extra_data: Vec<u8>,
 
     /// Number of threads used for incoming order simulation
     pub simulation_threads: usize,
@@ -256,7 +256,7 @@ impl BaseConfig {
             provider,
 
             coinbase_signer: self.coinbase_signer()?,
-            extra_data: self.extra_data.clone(),
+            extra_data: EXTRA_DATA.to_vec(),
             blocklist_provider,
 
             global_cancellation: cancellation_token.clone(),
@@ -502,7 +502,6 @@ impl Default for BaseConfig {
             blocklist: None,
             blocklist_url_max_age_hours: None,
             blocklist_url_max_age_secs: None,
-            extra_data: b"vibe builder 420 69".to_vec(),
             root_hash_use_sparse_trie: false,
             root_hash_sparse_trie_version: "v1".to_string(),
             root_hash_compare_sparse_trie: false,
@@ -530,20 +529,6 @@ impl Default for BaseConfig {
             max_order_execution_duration_warning_us: None,
         }
     }
-}
-
-fn deserialize_extra_data<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(deserializer)?;
-    let bytes = s.into_bytes();
-    if bytes.len() > 32 {
-        return Err(serde::de::Error::custom(
-            "Extra data is too long (max 32 bytes)",
-        ));
-    }
-    Ok(bytes)
 }
 
 /// Open reth db and DB should be opened once per process but it can be cloned and moved to different threads.
