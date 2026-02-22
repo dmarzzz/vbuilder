@@ -199,7 +199,7 @@ impl Trie {
         nibbles_key: &Nibbles,
         insert_value: InsertValue<'_>,
     ) -> Result<Option<Range<usize>>, NodeNotFound> {
-        let ins_key = nibbles_key.as_slice();
+        let ins_key = nibbles_key.to_vec();
 
         let mut current_node = 0;
         let mut path_walked = 0;
@@ -377,7 +377,7 @@ impl Trie {
         &mut self,
         nibbles_key: &Nibbles,
     ) -> Result<Range<usize>, DeletionError> {
-        let del_key = nibbles_key.as_slice();
+        let del_key = nibbles_key.to_vec();
 
         let mut current_node = 0;
         let mut path_walked = 0;
@@ -423,9 +423,10 @@ impl Trie {
                                 .unwrap();
                             let orphan_ptr = orphan_ptr.unwrap();
                             if orphan_ptr.is_remote() {
-                                let mut orphan_path = Nibbles::with_capacity(path_walked);
-                                orphan_path
-                                    .extend_from_slice_unchecked(&del_key[..(path_walked - 1)]);
+                                let mut orphan_path = Nibbles::new();
+                                orphan_path.extend(&Nibbles::from_nibbles_unchecked(
+                                    &del_key[..(path_walked - 1)],
+                                ));
                                 orphan_path.push_unchecked(orphan_nibble as u8);
                                 return Err(NodeNotFound(orphan_path).into());
                             }
@@ -875,6 +876,8 @@ impl Trie {
 
         let mut current_node = 0;
         let mut path_walked = 0;
+        // Convert to Vec<u8> for nibble-by-nibble indexing (nybbles 0.4 has no Index impl).
+        let target_key_slice = target_key.to_vec();
 
         loop {
             let node = self
@@ -888,7 +891,7 @@ impl Trie {
 
             self.rlp_encode_node(current_node, &mut buf, proof_store);
             let current_node_path =
-                Nibbles::from_nibbles_unchecked(&target_key.as_slice()[..path_walked]);
+                target_key.slice_unchecked(0, path_walked);
             result.proof.push((current_node_path, buf.clone()));
 
             match node {
@@ -899,7 +902,7 @@ impl Trie {
 
                     let children = *children;
 
-                    let n = target_key[path_walked];
+                    let n = target_key_slice[path_walked];
                     path_walked += 1;
 
                     if let Some(child_ptr) = self.branch_node_children[children][n as usize] {
@@ -915,7 +918,7 @@ impl Trie {
                     let key = key.clone();
                     let next_node = *next_node;
 
-                    if target_key[path_walked..].starts_with(&self.keys[key.clone()]) {
+                    if target_key_slice[path_walked..].starts_with(&self.keys[key.clone()]) {
                         path_walked += key.len();
                         current_node = next_node
                             .as_local()
@@ -926,7 +929,7 @@ impl Trie {
                     break;
                 }
                 DiffTrieNode::Leaf { key, value } => {
-                    if self.keys[key.clone()] == target_key[path_walked..] {
+                    if self.keys[key.clone()] == target_key_slice[path_walked..] {
                         result.value = Some(self.values[value.clone()].to_vec());
                     }
                     break;
@@ -1059,6 +1062,8 @@ impl Trie {
 
         let mut current_node = 0;
         let mut path_walked = 0;
+        // Convert to Vec<u8> for nibble indexing (nybbles 0.4 has no Index impl on Nibbles).
+        let path = path.to_vec();
 
         let mut parent_ptr = None;
         let mut parent_nibble = 0;
