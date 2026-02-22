@@ -55,7 +55,7 @@ use super::{
 };
 
 /// Hard-coded block extra data included in every block built by vbuilder.
-pub const EXTRA_DATA: &[u8] = b"vibe builder 420 69";
+pub const EXTRA_DATA: &[u8] = "vibe builder 420 69 🦞".as_bytes();
 
 /// Base config to be used by all builders.
 /// It allows us to create a base LiveBuilder with no algorithms or custom bidding.
