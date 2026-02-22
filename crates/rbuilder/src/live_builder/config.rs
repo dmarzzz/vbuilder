@@ -655,13 +655,11 @@ where
                 PartialBlockExecutionTracerType,
             >(config, input, partial_block_execution_tracer)
         }
-        Sorting::TxHash => {
-            crate::building::builders::ordering_builder::backtest_simulate_block::<
-                P,
-                OrderTxHashPriority<ProfitInfoGetterType>,
-                PartialBlockExecutionTracerType,
-            >(config, input, partial_block_execution_tracer)
-        }
+        Sorting::TxHash => crate::building::builders::ordering_builder::backtest_simulate_block::<
+            P,
+            OrderTxHashPriority<ProfitInfoGetterType>,
+            PartialBlockExecutionTracerType,
+        >(config, input, partial_block_execution_tracer),
         Sorting::ReverseTxHash => {
             crate::building::builders::ordering_builder::backtest_simulate_block::<
                 P,
