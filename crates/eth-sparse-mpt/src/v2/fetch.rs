@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    utils::{convert_nibbles_to_reth_nybbles, convert_reth_nybbles_to_nibbles, HashMap},
-    SparseTrieError,
-};
+use crate::{utils::HashMap, SparseTrieError};
 use alloy_primitives::map::B256Set;
 use parking_lot::Mutex;
 use rayon::prelude::*;
@@ -89,13 +86,10 @@ impl MissingNodesFetcher {
                         .map_err(SparseTrieError::other)?;
                     *fetched_nodes.lock() += requested_proofs.len();
                     for requested_proof in requested_proofs {
-                        let proof_for_node = storge_multiproof.subtree.matching_nodes_sorted(
-                            &convert_nibbles_to_reth_nybbles(requested_proof.clone()),
-                        );
-                        let reth_proof_for_node = proof_for_node
-                            .into_iter()
-                            .map(|(k, v)| (convert_reth_nybbles_to_nibbles(k), v))
-                            .collect();
+                        // nybbles 0.4: Nibbles type unified — no conversion needed.
+                        let proof_for_node =
+                            storge_multiproof.subtree.matching_nodes_sorted(&requested_proof);
+                        let reth_proof_for_node: Vec<_> = proof_for_node.into_iter().collect();
                         let proof_store =
                             shared_cache.account_proof_store_hashed_address(&hashed_address);
                         proof_store
@@ -133,12 +127,9 @@ impl MissingNodesFetcher {
         for requested_node in self.account_proof_requested_nodes.drain(..) {
             let proof_for_node = multiproof
                 .account_subtree
-                .matching_nodes_sorted(&convert_nibbles_to_reth_nybbles(requested_node.clone()));
+                .matching_nodes_sorted(&requested_node);
 
-            let reth_proof_for_node = proof_for_node
-                .into_iter()
-                .map(|(k, v)| (convert_reth_nybbles_to_nibbles(k), v))
-                .collect();
+            let reth_proof_for_node: Vec<_> = proof_for_node.into_iter().collect();
             shared_cache
                 .account_trie
                 .add_proof(requested_node, reth_proof_for_node)
@@ -150,7 +141,9 @@ impl MissingNodesFetcher {
 }
 
 fn pad_path(mut path: Nibbles) -> B256 {
-    path.as_mut_vec_unchecked().resize(64, 0);
+    while path.len() < 64 {
+        path.push_unchecked(0);
+    }
     let mut res = B256::default();
     path.pack_to(res.as_mut_slice());
     res
